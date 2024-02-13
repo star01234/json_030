@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance</title>
+    <!-- เรียกใช้ CSS ของ Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mt-5">รายชื่อการเข้าเรียน</h1>
+        <!-- ปรับการวางแนวของช่องค้นหาไปทางด้านขวา -->
+        <div class="row justify-content-end mt-4">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="ค้นหานักเรียน...">
+            </div>
+        </div>
+        <table class="table mt-4">
+            <thead>
+                <tr>
+                    <th>ลำดับ</th>
+                    <th>รหัสประจำตัว</th>
+                    <th>ชื่อ</th>
+                    <th>สัปดาห์ 1</th>
+                    <th>สัปดาห์ 2</th>
+                    <th>สัปดาห์ 3</th>
+                    <th>สัปดาห์ 4</th>
+                    <th>สัปดาห์ 5</th>
+                </tr>
+            </thead>
+            <tbody id="attendance-list"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // ฟังก์ชันโหลดข้อมูลจากไฟล์ JSON และแสดงบนตาราง
+        function loadAttendanceData() {
+            fetch('student_attendance.json') // ตรงนี้ให้เปลี่ยนเส้นทางไฟล์ให้ถูกต้อง
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('attendance-list');
+                    data.forEach(student => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${student['ลำดับ']}</td>
+                            <td>${student['รหัสประจำตัว']}</td>
+                            <td>${student['ชื่อ']}</td>
+                            <td><input class="form-check-input" type="checkbox" ${student['สัปดาห์1'] ? 'checked' : ''} onclick="updateAttendance(this, 'สัปดาห์1', ${student['ลำดับ']})"></td>
+                            <td><input class="form-check-input" type="checkbox" ${student['สัปดาห์2'] ? 'checked' : ''} onclick="updateAttendance(this, 'สัปดาห์2', ${student['ลำดับ']})"></td>
+                            <td><input class="form-check-input" type="checkbox" ${student['สัปดาห์3'] ? 'checked' : ''} onclick="updateAttendance(this, 'สัปดาห์3', ${student['ลำดับ']})"></td>
+                            <td><input class="form-check-input" type="checkbox" ${student['สัปดาห์4'] ? 'checked' : ''} onclick="updateAttendance(this, 'สัปดาห์4', ${student['ลำดับ']})"></td>
+                            <td><input class="form-check-input" type="checkbox" ${student['สัปดาห์5'] ? 'checked' : ''} onclick="updateAttendance(this, 'สัปดาห์5', ${student['ลำดับ']})"></td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => console.error('Error loading the data:', error));
+        }
+
+        // ฟังก์ชันอัปเดตการเข้าเรียนของนักเรียนและบันทึกลงใน JSON
+        function updateAttendance(checkbox, week, studentId) {
+            const checked = checkbox.checked;
+            fetch('student_attendance.json') // ตรงนี้ให้เปลี่ยนเส้นทางไฟล์ให้ถูกต้อง
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(student => {
+                        if (student['ลำดับ'] === studentId) {
+                            student[week] = checked;
+                        }
+                    });
+
+                    // บันทึกข้อมูลลงในไฟล์ JSON
+                    const jsonData = JSON.stringify(data, null, 2);
+                    fetch('save_attendance.php', { // เปลี่ยนเป็นไฟล์ที่ใช้ในการบันทึก
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: jsonData
+                    })
+                    .then(response => response.text())
+                    .then(data => console.log(data))
+                    .catch(error => console.error('Error saving the data:', error));
+                })
+                .catch(error => console.error('Error updating the data:', error));
+        }
+
+        // ฟังก์ชันค้นหานักเรียน
+        function searchStudents() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById('attendance-list');
+            const rows = table.getElementsByTagName('tr');
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                let found = false;
+                for (let j = 0; j < cells.length && !found; j++) {
+                    const cell = cells[j];
+                    if (cell) {
+                        const textValue = cell.textContent || cell.innerText;
+                        if (textValue.toUpperCase().indexOf(filter) > -1) {
+                            found = true;
+                        }
+                    }
+                }
+                rows[i].style.display = found ? '' : 'none';
+            }
+        }
+
+        // เรียกใช้ฟังก์ชันเมื่อหน้าเว็บโหลดเสร็จสมบูรณ์
+        window.onload = loadAttendanceData;
+    </script>
+
+    <!-- เรียกใช้ JavaScript ของ Bootstrap 5 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
